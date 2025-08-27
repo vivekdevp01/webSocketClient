@@ -1,5 +1,6 @@
 package com.example.clientsocketservice.controller;
 
+import com.example.clientsocketservice.Producers.KafkaProducerService;
 import com.example.clientsocketservice.dto.*;
 import com.example.uberprojectentityservice.models.BookingStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,12 +25,22 @@ public class DriverRequestController {
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     private final RestTemplate restTemplate;
+    private final KafkaProducerService kafkaProducerService;
 
-    public DriverRequestController(RestTemplate restTemplate, SimpMessagingTemplate simpMessagingTemplate) {
+
+    public DriverRequestController(RestTemplate restTemplate,KafkaProducerService kafkaProducerService, SimpMessagingTemplate simpMessagingTemplate) {
 //        this.messagingTemplate = messagingTemplate;
         this.simpMessagingTemplate = simpMessagingTemplate;
         this.restTemplate = restTemplate;
+        this.kafkaProducerService = kafkaProducerService;
     }
+    @GetMapping
+
+    public ResponseEntity<Boolean> help() {
+        kafkaProducerService.publishMessage("sample-topic", "Hello from client-socket-service");
+        return ResponseEntity.ok(Boolean.TRUE);
+    }
+
 
     @PostMapping("/newride")
     public ResponseEntity<Boolean> raiseRideRequest(@RequestBody RideRequestDto rideRequestDto) {
@@ -66,6 +78,7 @@ public class DriverRequestController {
                 .status(BookingStatus.SCHEDULED)
                 .build();
       ResponseEntity<UpdateBookingDto> result=  this.restTemplate.postForEntity("http://localhost:7777/api/v1/booking/"+rideResponseDto.bookingId,requestDto,UpdateBookingDto.class);
+      kafkaProducerService.publishMessage("sample-topic","hello");
       System.out.println(result.getStatusCode());
       System.out.println(result.getBody());
 
